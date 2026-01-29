@@ -1,7 +1,5 @@
-
-pytest
 fastapi
 uvicorn
+google-genai
+pytest
 httpx
-google
-pydantic
