@@ -1,11 +1,3 @@
-    - name: Install Playwright Browsers
-      run: |
-        cd frontend
-        npx playwright install --with-deps
-    - name: Run E2E tests (Playwright)
-      run: |
-        cd frontend
-        npm run test:e2e
 name: Python application
 
 on:
@@ -39,6 +31,14 @@ jobs:
       run: |
         cd frontend
         npm test -- --watchAll=false --passWithNoTests
+    - name: Install Playwright Browsers
+      run: |
+        cd frontend
+        npx playwright install --with-deps
+    - name: Run E2E tests (Playwright)
+      run: |
+        cd frontend
+        npm run test:e2e
     - name: Run tests
       env:
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
