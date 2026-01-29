@@ -1,7 +1,5 @@
 name: Fullstack CI
 
-permissions: contents: read packages: write
-
 on:
   push:
     branches: [ main ]
@@ -76,7 +74,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_PAT }}
       - name: Build and push Docker image
         run: |
           docker build -t ghcr.io/camille9999/my-backend:latest .
@@ -94,7 +92,7 @@ jobs:
           password: ${{ secrets.VPS_PASS }}
           port: ${{ secrets.VPS_PORT }}
           script: |
-            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GHCR_PAT }}
             docker pull ghcr.io/camille9999/my-backend:latest
             docker stop my-backend || true
             docker rm my-backend || true
