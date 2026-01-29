@@ -79,24 +79,26 @@ jobs:
         run: |
           cd frontend
           npm test -- --watchAll=false --passWithNoTests
-      - name: Upload node_modules and build
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: frontend-artifacts
-          path: |
-            frontend/node_modules
-            frontend/build
+          name: frontend-build
+          path: frontend/build
 
   e2e:
     needs: [backend_test, frontend_test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Download frontend artifacts
+      - name: Download frontend build artifact
         uses: actions/download-artifact@v4
         with:
-          name: frontend-artifacts
-          path: frontend
+          name: frontend-build
+          path: frontend/build
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm install
       - name: Install Playwright Browsers
         run: |
           cd frontend
