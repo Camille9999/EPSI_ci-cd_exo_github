@@ -77,8 +77,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push Docker image
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/my-backend:latest .
-          docker push ghcr.io/${{ github.repository_owner }}/my-backend:latest
+          docker build -t ghcr.io/camille9999/my-backend:latest .
+          docker push ghcr.io/camille9999/my-backend:latest
 
   deploy:
     needs: docker
@@ -93,7 +93,7 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
-            docker pull ghcr.io/${{ github.repository_owner }}/my-backend:latest
+            docker pull ghcr.io/camille9999/my-backend:latest
             docker stop my-backend || true
             docker rm my-backend || true
-            docker run -d --env-file .env -p 8100:8000 --name my-backend ghcr.io/${{ github.repository_owner }}/my-backend:latest uvicorn app.main:app --host 0.0.0.0 --port 8000
+            docker run -d --env-file .env -p 8100:8000 --name my-backend ghcr.io/camille9999/my-backend:latest uvicorn app.main:app --host 0.0.0.0 --port 8000
