@@ -12,7 +12,7 @@
   </style>
 </head>
 <body>
-  <h2>Chat Gemini (Minimal)</h2>
+  <h2>Chat Gemini</h2>
   <div id="messages"></div>
   <form id="chat-form">
     <input id="prompt" autocomplete="off" placeholder="Posez une question..." style="width:70%" />
@@ -43,7 +43,7 @@
           body: JSON.stringify({ prompt })
         });
         const data = await res.json();
-        messagesDiv.lastChild.textContent = 'Bot: ' + (data.text || data.detail || JSON.stringify(data));
+        messagesDiv.lastChild.textContent = 'Bot: ' + (data.text || data.response || data.detail || JSON.stringify(data));
       } catch {
         messagesDiv.lastChild.textContent = "Bot: Erreur de connexion à l'API.";
       }
