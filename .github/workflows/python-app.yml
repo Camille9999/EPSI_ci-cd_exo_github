@@ -5,9 +5,47 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  release:
+    types: [created]
 
 jobs:
-  backend:
+  # --- VALIDATION ---
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install flake8
+        run: pip install flake8
+      - name: Lint backend
+        run: flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics
+
+  security_secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for secrets
+        uses: gitleaks/gitleaks-action@v2
+
+  security_dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install safety
+        run: pip install safety
+      - name: Check dependencies
+        run: safety check -r requirements.txt
+
+  # --- TEST ---
+  backend_test:
+    needs: [lint, security_secrets, security_dependencies]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,10 +60,10 @@ jobs:
       - name: Run backend tests
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-        run: |
-          pytest app/
+        run: pytest app/
 
-  frontend:
+  frontend_test:
+    needs: [lint, security_secrets, security_dependencies]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,20 +79,24 @@ jobs:
         run: |
           cd frontend
           npm test -- --watchAll=false --passWithNoTests
+      - name: Upload node_modules and build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-artifacts
+          path: |
+            frontend/node_modules
+            frontend/build
 
   e2e:
-    needs: [backend, frontend]
+    needs: [backend_test, frontend_test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install frontend dependencies
-        run: |
-          cd frontend
-          npm install
-      - name: Build frontend
-        run: |
-          cd frontend
-          npm run build
+      - name: Download frontend artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-artifacts
+          path: frontend
       - name: Install Playwright Browsers
         run: |
           cd frontend
@@ -64,8 +106,9 @@ jobs:
           cd frontend
           npm run test:e2e
 
-  docker:
-    needs: [backend, frontend, e2e]
+  # --- BUILD ---
+  build_backend:
+    needs: [e2e]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -75,13 +118,13 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
-      - name: Build and push Docker image
+      - name: Build and push backend Docker image
         run: |
           docker build -t ghcr.io/camille9999/etudiant1-backend:latest .
           docker push ghcr.io/camille9999/etudiant1-backend:latest
 
-  frontend-docker:
-    needs: [frontend]
+  build_frontend:
+    needs: [e2e]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -97,8 +140,19 @@ jobs:
           docker build -t ghcr.io/camille9999/etudiant1-frontend:latest .
           docker push ghcr.io/camille9999/etudiant1-frontend:latest
 
+  # --- RELEASE (optional, on tag) ---
+  release:
+    needs: [build_backend, build_frontend]
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+
+  # --- DEPLOY ---
   deploy:
-    needs: [docker, frontend-docker]
+    needs: [build_backend, build_frontend]
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to VPS via SSH
@@ -109,7 +163,6 @@ jobs:
           password: ${{ secrets.VPS_PASS }}
           port: ${{ secrets.VPS_PORT }}
           script: |
-            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GHCR_PAT }}
             docker network create app-net || true
             docker pull ghcr.io/camille9999/etudiant1-backend:latest
             docker stop etudiant1-backend || true
