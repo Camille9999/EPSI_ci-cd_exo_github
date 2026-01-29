@@ -118,4 +118,4 @@ jobs:
             docker pull ghcr.io/camille9999/etudiant1-frontend:latest
             docker stop etudiant1-frontend || true
             docker rm etudiant1-frontend || true
-            docker run -d --network app-net --name etudiant1-frontend ghcr.io/camille9999/etudiant1-frontend:latest
+            docker run -d --network app-net -p 8101:80 --name etudiant1-frontend ghcr.io/camille9999/etudiant1-frontend:latest
