@@ -63,3 +63,37 @@ jobs:
         run: |
           cd frontend
           npm run test:e2e
+
+  docker:
+    needs: [backend, frontend, e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push Docker image
+        run: |
+          docker build -t ghcr.io/${{ github.repository_owner }}/my-backend:latest .
+          docker push ghcr.io/${{ github.repository_owner }}/my-backend:latest
+
+  deploy:
+    needs: docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASS }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+            docker pull ghcr.io/${{ github.repository_owner }}/my-backend:latest
+            docker stop my-backend || true
+            docker rm my-backend || true
+            docker run -d --env-file .env -p 8100:8000 --name my-backend ghcr.io/${{ github.repository_owner }}/my-backend:latest uvicorn app.main:app --host 0.0.0.0 --port 8000
