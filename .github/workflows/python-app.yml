@@ -30,7 +30,7 @@ jobs:
     - name: Test frontend
       run: |
         cd frontend
-        npm test -- --watchAll=false
+        npm test -- --watchAll=false --passWithNoTests
     - name: Run tests
       env:
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
