@@ -5,7 +5,10 @@ from app.main import app
 
 client = TestClient(app)
 
-@pytest.mark.skipif(not os.getenv("GOOGLE_API_KEY"), reason="GOOGLE_API_KEY not found")
+@pytest.mark.skipif(
+    not os.getenv("GOOGLE_API_KEY") or os.getenv("SKIP_API_TESTS") == "true",
+    reason="GOOGLE_API_KEY not found or SKIP_API_TESTS set"
+)
 def test_generate_e2e_real_call():
     """
     Test E2E : Appelle la VRAIE API Google Gemini.

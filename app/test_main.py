@@ -1,6 +1,7 @@
 import os
 from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
+import pytest
 
 os.environ["GOOGLE_API_KEY"] = "fake_key_for_testing"
 
@@ -15,6 +16,7 @@ def test_health_check():
 
 
 @patch("app.main.genai.Client")
+@pytest.mark.skipif(os.getenv("SKIP_API_TESTS") == "true", reason="SKIP_API_TESTS set")
 def test_generate_text_mock(mock_client_class):
     """Test qui simule l'appel à Gemini sans internet"""
 

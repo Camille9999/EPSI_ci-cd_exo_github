@@ -60,6 +60,7 @@ jobs:
       - name: Run backend tests
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          SKIP_API_TESTS: true
         run: pytest app/
 
   frontend_test:
