@@ -80,8 +80,25 @@ jobs:
           docker build -t ghcr.io/camille9999/my-backend:latest .
           docker push ghcr.io/camille9999/my-backend:latest
 
+  frontend-docker:
+    needs: [frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT }}
+      - name: Build and push frontend Docker image
+        run: |
+          cd frontend
+          docker build -t ghcr.io/camille9999/my-frontend:latest .
+          docker push ghcr.io/camille9999/my-frontend:latest
+
   deploy:
-    needs: docker
+    needs: [docker, frontend-docker]
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to VPS via SSH
@@ -97,3 +114,7 @@ jobs:
             docker stop my-backend || true
             docker rm my-backend || true
             docker run -d --env-file .env -p 8100:8000 --name my-backend ghcr.io/camille9999/my-backend:latest uvicorn app.main:app --host 0.0.0.0 --port 8000
+            docker pull ghcr.io/camille9999/my-frontend:latest
+            docker stop my-frontend || true
+            docker rm my-frontend || true
+            docker run -d -p 8101:80 --name my-frontend ghcr.io/camille9999/my-frontend:latest
